@@ -148,7 +148,7 @@
 - (void) teardown {
     [self.recognitionTask cancel];
     self.recognitionTask = nil;
-    [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
+//    [self.audioSession setCategory:AVAudioSessionCategoryAmbient error:nil];
     self.audioSession = nil;
     
     if (self.audioEngine.isRunning) {
