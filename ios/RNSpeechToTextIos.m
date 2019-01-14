@@ -19,6 +19,8 @@
 
 @end
 
+static BOOL isStarted = false;
+
 @implementation RNSpeechToTextIos
 {
 }
@@ -26,8 +28,11 @@
 
 
 - (void) setupAndStartRecognizing:(NSString*)localeStr {
+    if (isStarted) {
+        return;
+    }
+    isStarted = true;
     [self teardown];
-    
     NSLocale* locale = nil;
     if ([localeStr length] > 0) {
         locale = [NSLocale localeWithLocaleIdentifier:localeStr];
@@ -40,7 +45,6 @@
     }
     
     self.speechRecognizer.delegate = self;
-    
     
     NSError* audioSessionError = nil;
     self.audioSession = [AVAudioSession sharedInstance];
@@ -60,7 +64,6 @@
         return;
     }
     
-    
     self.recognitionRequest = [[SFSpeechAudioBufferRecognitionRequest alloc] init];
     
     if (self.recognitionRequest == nil){
@@ -77,7 +80,7 @@
         [self sendResult:RCTMakeError(@"Audio engine has no input node", nil, nil) :nil :nil :nil];
         return;
     }
-    
+
     // Configure request so that results are returned before audio recording is finished
     self.recognitionRequest.shouldReportPartialResults = YES;
 
@@ -130,6 +133,7 @@
     NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
     if (error != nil && error != [NSNull null]) {
         result[@"error"] = error;
+        isStarted = false;
     }
     if (bestTranscription != nil) {
         result[@"bestTranscription"] = bestTranscription;
@@ -139,6 +143,7 @@
     }
     if (isFinal != nil) {
         result[@"isFinal"] = isFinal;
+        isStarted = false;
     }
     
     [self.bridge.eventDispatcher sendAppEventWithName:@"SpeechToText"
@@ -190,12 +195,14 @@
 RCT_EXPORT_METHOD(finishRecognition)
 {
     // lets finish it
+    isStarted = false;
     [self.recognitionTask finish];
 }
 
 
 RCT_EXPORT_METHOD(stopRecognition)
 {
+    isStarted = false;
     [self teardown];
 }
 
@@ -205,7 +212,6 @@ RCT_EXPORT_METHOD(startRecognition:(NSString*)localeStr)
         [self sendResult:RCTMakeError(@"Speech recognition already started!", nil, nil) :nil :nil :nil];
         return;
     }
-    
     
     [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
         switch (status) {
@@ -223,7 +229,6 @@ RCT_EXPORT_METHOD(startRecognition:(NSString*)localeStr)
                 break;
         }
     }];
-    
 }
 
 
@@ -241,4 +246,3 @@ RCT_EXPORT_MODULE()
 
 
 @end
-  
